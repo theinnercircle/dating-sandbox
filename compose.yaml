@@ -1,0 +1,22 @@
+# Local Postgres. `./gradlew bootRun` starts it automatically through spring-boot-docker-compose;
+# run `docker compose up -d` yourself if you start the app another way.
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: dating
+      POSTGRES_USER: dating
+      POSTGRES_PASSWORD: dating
+    ports:
+      - "5432:5432"
+    volumes:
+      # Postgres 18 declares its VOLUME at /var/lib/postgresql, not /var/lib/postgresql/data.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dating -d dating"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:

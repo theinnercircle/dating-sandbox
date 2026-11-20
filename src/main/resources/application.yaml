@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: dating
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dating
+    username: dating
+    password: dating
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health

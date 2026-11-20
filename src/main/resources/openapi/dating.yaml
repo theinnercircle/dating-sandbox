@@ -1,0 +1,272 @@
+openapi: "3.1.0"
+info:
+  title: Dating API
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /proposals:
+    post:
+      tags:
+        - Proposals
+      summary: Propose a date to another member
+      operationId: createProposal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProposalRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DateProposal"
+        "400":
+          description: Bad Request - the proposer invites themselves, or the proposed time is not in the future
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - the proposer or the invitee does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /proposals/{id}/accept:
+    post:
+      tags:
+        - Proposals
+      summary: The invitee accepts a proposal
+      operationId: acceptProposal
+      parameters:
+        - $ref: "#/components/parameters/ProposalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposalActionRequest"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden - the member is not the invitee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - the proposal does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict - the proposal can no longer be accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /proposals/{id}/decline:
+    post:
+      tags:
+        - Proposals
+      summary: The invitee declines a proposal
+      operationId: declineProposal
+      parameters:
+        - $ref: "#/components/parameters/ProposalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposalActionRequest"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden - the member is not the invitee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - the proposal does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict - the proposal is no longer open
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /proposals/{id}/cancel:
+    post:
+      tags:
+        - Proposals
+      summary: The proposer cancels a proposal, before or after it was accepted
+      operationId: cancelProposal
+      parameters:
+        - $ref: "#/components/parameters/ProposalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposalActionRequest"
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden - the member is not the proposer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found - the proposal does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Conflict - the proposal was already declined or cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /members/{id}/proposals:
+    get:
+      tags:
+        - Members
+      summary: The proposals a member sent or received, newest first
+      operationId: memberProposals
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DateProposal"
+        "404":
+          description: Not Found - the member does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  parameters:
+    ProposalId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    ErrorResponse:
+      type: object
+      description: The error body every failed request answers with.
+      required:
+        - timestamp
+        - status
+        - error
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+          description: The HTTP reason phrase.
+        path:
+          type: string
+
+    CreateProposalRequest:
+      type: object
+      required:
+        - proposerId
+        - inviteeId
+        - proposedTime
+      properties:
+        proposerId:
+          type: string
+          format: uuid
+        inviteeId:
+          type: string
+          format: uuid
+        proposedTime:
+          type: string
+          format: date-time
+          description: When the date would take place, as an ISO-8601 instant with offset.
+
+    ProposalActionRequest:
+      type: object
+      required:
+        - memberId
+      properties:
+        memberId:
+          type: string
+          format: uuid
+          description: The member performing the action.
+
+    ProposalStatus:
+      type: string
+      enum:
+        - PROPOSED
+        - ACCEPTED
+        - DECLINED
+        - CANCELLED
+
+    DateProposal:
+      type: object
+      required:
+        - id
+        - proposerId
+        - inviteeId
+        - proposedTime
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposerId:
+          type: string
+          format: uuid
+        inviteeId:
+          type: string
+          format: uuid
+        proposedTime:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/ProposalStatus"
+        createdAt:
+          type: string
+          format: date-time
